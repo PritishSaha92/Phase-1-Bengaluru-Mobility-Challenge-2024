@@ -2,7 +2,12 @@
 ## Team "KolKGP Convergence"
 Participant in the Phase 1 of The Bengaluru Mobility Challenge <br/>
 <br/>
-Member: Pritish Saha
+**Team Members:**
+- Pritish Saha
+- Nabayan Saha
+- Rounak Nath
+- Srinjoy Ganguly
+- Upal Mazumder
 <br/>
 <br/> More details about the event can be found here: [Link](https://dataforpublicgood.org.in/bengaluru-mobility-challenge-2024/)
 
