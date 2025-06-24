@@ -1,100 +1,98 @@
-# Vehicle Detection and Tracking Project
+# [The Bengaluru Mobility Challenge, 2024](https://ieee-dataport.org/competitions/bengaluru-mobility-challenge-2024)
+## Team "KolKGP Convergence"
+Participant in the Phase 1 of The Bengaluru Mobility Challenge <br/>
+<br/>
+Member: Pritish Saha
+<br/>
+<br/> More details about the event can be found here: [Link](https://dataforpublicgood.org.in/bengaluru-mobility-challenge-2024/)
 
-This project leverages the YOLOv10 model for vehicle detection, Kalman filtering for object tracking, and ARIMA for traffic flow forecasting. The primary goal is to detect, track, and categorize vehicles in video feeds, analyze their movement patterns across predefined sections, and forecast future traffic flows.
+### Problem Statement:
+The participants in this phase will be provided with camera feeds from 23 Safe City cameras in northern Bengaluru, around the IISc campus. The task will be to provide short-term (e.g., 30 minutes into the future) predictions of the vehicle counts (by vehicle type) as well as vehicle turning patterns at certain points and junctions of the road network. The predictions may be at different points different from the locations where the camera feeds are available.
 
-## Setup Instructions
-### Prerequisites
-Ensure you have the following system requirements and dependencies:
 
-GPU: NVIDIA GPU with CUDA support (CUDA 11.7 or later)
-RAM: 16 GB or more
-CPU: 8-core or more
-Operating System: Ubuntu 20.04 or compatible
 
-### Building the Docker Image
-To build the Docker image, follow these steps:
+### Scripts and Files
 
-1. Clone the Repository:
-git clone https://github.com/THU-MIG/yolov10.git
-cd yolov10
-pip install -r requirements.txt
-cd yolov10
-pip install -e .
-cd ..
+#### `src`
+This folder contains all the files needed to run the pipeline.
+1. **`app.py`** : The main driver code that has to be run. Takes an input JSON file and output JSON file as CLI arguments that provide the video paths and the path to the final output counts. 
 
-2. Build the Docker Image:
-docker build -t pritishsaha92/bmc_kolkgpconv_submission .
-This command will create a Docker image named vehicle_detection_image. It uses a base image with Python 3.9 and CUDA 11.7 to ensure compatibility with the YOLOv10 model and other dependencies.
+2. **`config.py`** : This file contains a dictionary of the co-ordinates of the turning pattern detection boxes required for each camera location/junction.
 
-### Running the Docker Container
-After building the Docker image, you can run the container with the following command:
+3. **`outputTemplate.py`** : Here, the output format required by the organisers is stored, which is again a dictionary of every turning pattern possible, for both counts and predictions, which is to be converted and submitted in JSON format.
 
-docker run --rm --runtime=nvidia --gpus all -v <host-files-path>:<container-files-path>
-<image-name>:pritishsaha92/bmc_kolkgpconv_submission:latest python3 app.py input_file.json output_file.json
+4. **`customCounter.py`** : An *ultralytics* source code for creating a counter object that we modified based on our requirements.
 
-The --gpus all flag enables GPU support.
-The -v flag mounts the input and output directories from the host to the container.
+5. **`video_processor.py`** : This file houses the *VideoProcessor* class that does the video processing to detect, track and count the turns made by the various classes of vehicles. 
 
-Replace <host-path-to-input.json> with the full path to your input.json file on your host machine.
+6. **`forecasting.py`** : The *Forecaster* class is located here, which uses the count data collected while counting, to produce a prediction of the turn counts for the future. Preprocessing of the data logged onto the excel also takes place here.
 
-## Project Structure
-app.py: Main script that loads the YOLOv10 model, processes video input, tracks vehicles using Kalman filters, counts vehicle transitions, and performs ARIMA forecasting.
+7. **`output_handler.py`** : Just a simple script to process the derived outputs into the dictionary defined by *outputTemplate.py*.
 
-requirements.txt: Contains the list of Python libraries required to run the project. This file is used during the Docker image build to install dependencies.
+Only `app.py` is supposed to be run, the other files cannot run on their own.\
+Command to run: `python3 src/app.py data/input.json data/output.json`\
+Format for `data/input.json`:
+```
+{
+   "Cam_ID": 
+    {
+        "Vid_1": "path/to/your/video/Cam_ID_vid_1.mp4",
+        "Vid_2": "path/to/your/video/Cam_ID_1_vid_2.mp4"
+    }
+}
+```
+The paths inside `input.json` should be relative to where you run the command from, or absolute paths.
 
-Dockerfile: Defines the Docker environment, installs necessary dependencies, and sets up the project for execution.
+#### `models`
+- **`best.pt`** : The trained YOLOv8 model to detect the 7 classes of vehicles.
 
-yolov10/: Directory containing YOLOv10 model files and any associated custom scripts.
+#### `scripts`
+These are some other scripts used to ease the process of trainng and development but is not needed to run the framework.
+1. **`extract_images.py`** : We used this script to extract images from the video downloaded from the dataset every *n* frames which we can set based on the number of images required.
 
-## Key Components
-YOLOv10 Model: Utilized for detecting various vehicle classes in video frames. The model is loaded with fine-tuned weights specified in the script.
+2. **`auto_annotate.py`** : After making a basic model, we ran the extracted images through the model to annotate the images for us, and we would verify/edit the annotations. This script automated the annotation process and saved us a lot of time.
 
-Kalman Filter: Used to track vehicles between frames, predicting and updating vehicle positions to manage detection uncertainties.
+3. **`data_split.py`** : A simple script to split the images dataset into training, testing and validation sets.
 
-ARIMA Forecasting: Applied to vehicle count time series data to predict future traffic flow.
+4. **`stream.py`** : This code lets us view the YOLO model in action on a live video. It shows us the predictions being made in real-time in the video.
 
-Region and Turning Patterns: Vehicle movements are tracked across defined sections (regions), with transition patterns defined for traffic analysis.
+5. **`capture_coordinates.py`** : This script allowed us to simplify the process of creating the turn count boxes at the junctions. We simply opened the screenshot of the junction provided by the organisers and clicked on the corners of the box, and the pixel values are automatically logged.
 
-## Scripts and Notebooks
-app.py: The main application script that integrates detection, tracking, and forecasting. Run this script using the Docker setup for processing video files.
+6. **`view.py`** : Code that lets us view the turning boxes created against the actual images of the junction for easier interpretation. 
 
-## Requirements
-The following libraries are required to run the code:
+7. **`predict_arima.py`** : The script to test various forecasting models and methods using ARIMA, by tuning parameters, using different types of datasets etc.
 
-numpy
-pandas
-ultralytics
-filterpy
-statsmodels
-matplotlib
-torch
-torchvision
-onnx
-onnxruntime
-pycocotools
-PyYAML
-scipy
-onnxslim
-onnxruntime-gpu
-gradio
-opencv-python
-psutil
-py-cpuinfo
-huggingface-hub
-safetensors
-All dependencies will be installed automatically during the Docker image build process.
+8. **`data_combine.py`** : A simple script to combine the annotated image folders by all the team members.
 
-## Open-Source Models
-YOLOv10 from the Ultralytics GitHub repository is used for vehicle detection. The model weights are fine-tuned for specific vehicle classes relevant to this project.
+#### `data`
+- **`data.yaml`** : This file is used to specify dataset location during training, and holds the list of classes.
 
-## System Requirements
-To run this project effectively, ensure your system meets the following specifications:
+### `requirements.txt`
+This file lists all the python dependencies. Install them using:
+`pip3 install -r requirements.txt`
 
-GPU: NVIDIA GPU with at least 8 GB VRAM and CUDA support
-CUDA: Version 11.7 or later
-RAM: Minimum 16 GB
-CPU: At least 8-core processor
-Disk Space: Minimum 10 GB free for processing and storage
+### Open-Source Material
 
-## Evaluation
-The system is evaluated on its ability to detect and track various vehicle types across video feeds, count transitions between predefined regions accurately, and forecast future traffic using ARIMA models. The performance is measured based on detection accuracy, tracking precision, and forecasting reliability.
+**YOLOv8** by *Ultralyitcs* is an open source, real-time object detection and image segmentation model.
+
+**labelimg** is an annotation tool that provides features to draw and edit bounding boxes in the format required by YOLOv8.
+
+### Docker
+A Dockerfile has been created to install necessary libraries including CUDA for the model to be able to use GPUs. The docker file can be built and run in a simple way.\
+Build: `docker build -t username/imagename:version .`\
+Push: `docker push  username/imagename:version`\
+Run: `docker run --rm --gpus all -v 'YOUR_VIDEO_DIRECTORY_ON_HOST:/app/videos' -v 'YOUR_OUTPUT_DIRECTORY_ON_HOST:/app/output' username/imagename:version python3 src/app.py /app/videos/input.json /app/output/output.json`
+
+The run command takes the input and output json file to read, process and save the results in.
+- You need to place your `input.json` in `YOUR_VIDEO_DIRECTORY_ON_HOST`.
+- The paths in `input.json` should be relative to `/app/videos/` inside the container (e.g., `"Vid_1": "/app/videos/Cam_ID_vid_1.mp4"`).
+- The output will be saved in `YOUR_OUTPUT_DIRECTORY_ON_HOST`.
+
+### System Requirements
+
+- CPU - Core i5
+- GPU - NVIDIA GTX 1650 with CUDA support
+- RAM - 8 GB
+- Disk Space - 10 GB
+- Around 1GB of GPU memory would be used for realtime inference.
+
