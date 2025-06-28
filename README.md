@@ -1,103 +1,124 @@
-# [The Bengaluru Mobility Challenge, 2024](https://ieee-dataport.org/competitions/bengaluru-mobility-challenge-2024)
-## Team "KolKGP Convergence"
-Participant in the Phase 1 of The Bengaluru Mobility Challenge <br/>
-<br/>
-**Team Members:**
+# Vehicle Re-Identification - The Bengaluru Mobility Challenge - Phase II, 2024
+
+## Team Members
 - Pritish Saha
 - Nabayan Saha
 - Rounak Nath
 - Srinjoy Ganguly
 - Upal Mazumder
-<br/>
-<br/> More details about the event can be found here: [Link](https://dataforpublicgood.org.in/bengaluru-mobility-challenge-2024/)
 
-### Problem Statement:
-The participants in this phase will be provided with camera feeds from 23 Safe City cameras in northern Bengaluru, around the IISc campus. The task will be to provide short-term (e.g., 30 minutes into the future) predictions of the vehicle counts (by vehicle type) as well as vehicle turning patterns at certain points and junctions of the road network. The predictions may be at different points different from the locations where the camera feeds are available.
+This project is our submission to the [Bengaluru Mobility Challenge](https://ieee-dataport.org/competitions/bengaluru-mobility-challenge-2024) - Phase II. In this phase, the participants are tasked with re-identifying vehicles seen at some network locations at other locations of the network. The objective is to determine the origin-destination (O-D) flows for a specific part of the network over a defined time period. These O-D flow estimates are critical for transportation planning, what-if analysis, and related applications. This phase will conclude with finalist demos and the announcement of winners on **September 20, 2024**, in conjunction with the Symposium of Data for Public Good at IISc.
 
+## Our approach
 
+This approach basically utilizes the YOLOv5 object detection model to detect vehicles in the video frames. The detected vehicles are then passed through a feature extraction model to extract the features of the vehicles. These features are then compared to find similar vehicles in different frames. The similar vehicles are then matched to find the origin-destination flow of the vehicles.
 
-### Scripts and Files
+We're extremely inspired from Prof Zhedong Zheng for his and his team's work on Re-ID and [AI City Challenge](https://www.aicitychallenge.org/) which initially motivated us to work on this project. [Connecting Language and Vision for Natural Language-Based Vehicle Retrieva](https://arxiv.org/pdf/2105.14897) which gave us the initial perspective on how to approach this problem.
 
-#### `src`
-This folder contains all the files needed to run the pipeline.
-1. **`app.py`** : The main driver code that has to be run. Takes an input JSON file and output JSON file as CLI arguments that provide the video paths and the path to the final output counts. 
+## Project Setup
 
-2. **`config.py`** : This file contains a dictionary of the co-ordinates of the turning pattern detection boxes required for each camera location/junction.
+### 1. Pre-requisites
 
-3. **`outputTemplate.py`** : Here, the output format required by the organisers is stored, which is again a dictionary of every turning pattern possible, for both counts and predictions, which is to be converted and submitted in JSON format.
+To run the project, ensure you have the following dependencies:
 
-4. **`customCounter.py`** : An *ultralytics* source code for creating a counter object that we modified based on our requirements.
+- Python 3.12
+- PyTorch
+- Nvidia GPU with CUDA cores for optimal performance
 
-5. **`video_processor.py`** : This file houses the *VideoProcessor* class that does the video processing to detect, track and count the turns made by the various classes of vehicles. 
+### 2. Installation
 
-6. **`forecasting.py`** : The *Forecaster* class is located here, which uses the count data collected while counting, to produce a prediction of the turn counts for the future. Preprocessing of the data logged onto the excel also takes place here.
+Install the required dependencies by running:
 
-7. **`output_handler.py`** : Just a simple script to process the derived outputs into the dictionary defined by *outputTemplate.py*.
-
-Only `app.py` is supposed to be run, the other files cannot run on their own.\
-Command to run: `python3 src/app.py data/input.json data/output.json`\
-Format for `data/input.json`:
+```bash
+pip install -r requirements.txt
 ```
-{
-   "Cam_ID": 
-    {
-        "Vid_1": "path/to/your/video/Cam_ID_vid_1.mp4",
-        "Vid_2": "path/to/your/video/Cam_ID_1_vid_2.mp4"
-    }
-}
+
+### 3. Usage
+
+#### VehicleMatch TypedDict
+
+The `VehicleMatch` class is used for storing vehicle matching results. The attributes include:
+
+- `vehicle_id` (str): Unique identifier for the vehicle.
+- `similar_vehicle_id` (str): Identifier for a similar vehicle detected.
+- `frame_id` (int): Frame number where the match was found.
+- `boundingbox` (List[int]): Coordinates `[x1, y1, x2, y2]` representing the bounding box for the vehicle.
+
+#### Solution Class
+
+The `Solution` class handles video data processing and analysis, employing object detection and feature extraction using libraries like `YOLO`, `torch`, and `cv2`.
+
+## Example Usage
+
+To use the `Solution` class:
+
+```python
+from index import Solution
+
+# Initialize the solution
+solution = Solution()
+
+# Process video data
+solution.process_video("path/to/video.mp4")
 ```
-The paths inside `input.json` should be relative to where you run the command from, or absolute paths.
 
-#### `models`
-- **`best.pt`** : The trained YOLOv8 model to detect the 7 classes of vehicles.
+## Documentation
 
-#### `scripts`
-These are some other scripts used to ease the process of trainng and development but is not needed to run the framework.
-1. **`extract_images.py`** : We used this script to extract images from the video downloaded from the dataset every *n* frames which we can set based on the number of images required.
+### 1. Pre-requisites
 
-2. **`auto_annotate.py`** : After making a basic model, we ran the extracted images through the model to annotate the images for us, and we would verify/edit the annotations. This script automated the annotation process and saved us a lot of time.
+- Python 3.12
+- PyTorch
+- Nvidia GPU with CUDA cores
 
-3. **`data_split.py`** : A simple script to split the images dataset into training, testing and validation sets.
+### 2. Installation
 
-4. **`stream.py`** : This code lets us view the YOLO model in action on a live video. It shows us the predictions being made in real-time in the video.
+Run the following command to install dependencies:
 
-5. **`capture_coordinates.py`** : This script allowed us to simplify the process of creating the turn count boxes at the junctions. We simply opened the screenshot of the junction provided by the organisers and clicked on the corners of the box, and the pixel values are automatically logged.
+```bash
+pip install -r requirements.txt
+```
 
-6. **`view.py`** : Code that lets us view the turning boxes created against the actual images of the junction for easier interpretation. 
+### 3. Usage
 
-7. **`predict_arima.py`** : The script to test various forecasting models and methods using ARIMA, by tuning parameters, using different types of datasets etc.
+#### VehicleMatch TypedDict
 
-8. **`data_combine.py`** : A simple script to combine the annotated image folders by all the team members.
+The `VehicleMatch` class is a typing class for vehicle matching results and includes the following attributes:
 
-#### `data`
-- **`data.yaml`** : This file is used to specify dataset location during training, and holds the list of classes.
+- `vehicle_id` (str): The unique identifier for the vehicle.
+- `similar_vehicle_id` (str): The identifier for a similar vehicle found.
+- `frame_id` (int): The frame number where the match was found.
+- `boundingbox` (List[int]): The bounding box coordinates [x1, y1, x2, y2] for the detected vehicle.
 
-### `requirements.txt`
-This file lists all the python dependencies. Install them using:
-`pip3 install -r requirements.txt`
+#### Solution Class
 
-### Open-Source Material
+The `Solution` class processes and analyzes video data using object detection and feature extraction with the help of libraries such as `YOLO`, `torch`, `cv2`, and more.
 
-**YOLOv8** by *Ultralyitcs* is an open source, real-time object detection and image segmentation model.
+## Dependencies
 
-**labelimg** is an annotation tool that provides features to draw and edit bounding boxes in the format required by YOLOv8.
+The project uses the following libraries:
 
-### Docker
-A Dockerfile has been created to install necessary libraries including CUDA for the model to be able to use GPUs. The docker file can be built and run in a simple way.\
-Build: `docker build -t username/imagename:version .`\
-Push: `docker push  username/imagename:version`\
-Run: `docker run --rm --gpus all -v 'YOUR_VIDEO_DIRECTORY_ON_HOST:/app/videos' -v 'YOUR_OUTPUT_DIRECTORY_ON_HOST:/app/output' username/imagename:version python3 src/app.py /app/videos/input.json /app/output/output.json`
+- `json`
+- `logging`
+- `os`
+- `subprocess`
+- `sys`
+- `time`
+- `chromadb`
+- `cv2`
+- `h5py`
+- `numpy`
+- `torch`
+- `comet_ml`
+- `PrenAbhi`
+- `PIL`
+- `torchvision`
+- `ultralytics`
 
-The run command takes the input and output json file to read, process and save the results in.
-- You need to place your `input.json` in `YOUR_VIDEO_DIRECTORY_ON_HOST`.
-- The paths in `input.json` should be relative to `/app/videos/` inside the container (e.g., `"Vid_1": "/app/videos/Cam_ID_vid_1.mp4"`).
-- The output will be saved in `YOUR_OUTPUT_DIRECTORY_ON_HOST`.
+## Credits
 
-### System Requirements
-
-- CPU - Core i5
-- GPU - NVIDIA GTX 1650 with CUDA support
-- RAM - 8 GB
-- Disk Space - 10 GB
-- Around 1GB of GPU memory would be used for realtime inference.
-
+- [YOLOv10](https://github.com/THU-MIG/yolov10)
+- [PyTorch](https://pytorch.org)
+- [Comet.ml](https://www.comet.ml)
+- [Ultralytics](docs.ultralytics.com)
+- [Joint discriminative and generative learning for person re-identification](https://github.com/regob/vehicle_reid)
+- [Dr Zhedong Zheng](https://www.zdzheng.xyz/)

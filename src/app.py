@@ -1,48 +1,66 @@
-import argparse
-import json
-from video_processor import VideoProcessor
-from forecasting import Forecaster
-from config import locations_config as config
-from output_handler import OutputHandler
+import logging
+import os
+import sys
+import warnings
+from pathlib import Path
 
-def main(json_input, output_file):
+import cv2
+from pipeline import Solution
+from prenabhi import global_logger as logger
+
+cv2.setLogLevel(0)
+warnings.filterwarnings("ignore")
+
+
+def process_camera(solution: Solution, camera: str, model_file: str, output_file: str):
+    """Processes data for a specific camera."""
     try:
-        with open(json_input, 'r') as file:
-            data = json.load(file)  # Load the JSON input
-    except:
-        return "Error reading JSON file"
+        input_file = f"results_{camera}.hd5"
+        solution.aggregate_all_processes(input_file, model_file, output_file)
+        logging.info(f"Processed {camera} data successfully.")
+    except Exception as e:
+        logging.error(f"Error processing {camera} data: {str(e)}")
 
-    results = {}
-    video_processor = VideoProcessor()
-    output_handler = OutputHandler()
-    forecaster = Forecaster()
 
-    for cam_id, videos in data.items():
-        print(f"Processing camera: {cam_id}")
-        location_config = config[cam_id]
+def validate_input_file(input_file: Path) -> bool:
+    """Validates the existence of the input file."""
+    if "json" not in input_file:
+        logging.error("Input file must be a JSON file.")
+        return False
+    return True
 
-        # Step 1: Counting vehicles
-        cumulative_counts, frame_count_dict = video_processor.process_videos_and_compile_counts(cam_id, videos, location_config)
 
-        # Step 2: Forecasting vehicle counts
-        predicted_counts = forecaster.forecast_vehicle_counts(cumulative_counts, frame_count_dict, video_processor.fps)
+def create_directories_submission(team_name: str, classes: list[str]):
 
-        results[cam_id] = {
-            'Cumulative Counts': cumulative_counts,
-            'Predicted Counts': predicted_counts
-        }
-        results = output_handler.update_counts_with_camera_id(results, cam_id)
+    os.makedirs(f"data/{team_name}", exist_ok=True)
+    os.makedirs(f"data/{team_name}/Matrices", exist_ok=True)
+    for class_name in classes:
+        os.makedirs(f"data/{team_name}/Images/{class_name}", exist_ok=True)
 
-    # Save the final result as JSON to the specified output file
-    with open(output_file, 'w') as outfile:
-        json.dump(results, outfile, indent=4)
-    print(f"Results saved to {output_file}")
+
+def main():
+    args = sys.argv
+
+    try:
+        input_file = args[1]
+        team_name = args[2]
+    except IndexError:
+        logger.fatal("Input file not provided.")
+        return
+
+    classes = ["Bus", "Bicycle", "Car", "LCV", "Truck", "Two-Wheeler", "Three-Wheeler"]
+    create_directories_submission(team_name, classes)
+
+    if not validate_input_file(input_file):
+        logger.error("Invalid input file.")
+        return
+    soln = Solution(model="../weights/prenabhi-noaug-30.pt", team_name=team_name)
+    cameras = soln.process_input_json(input_file)
+    logging.info("Processing video...")
+    soln.process(cameras)
+    logging.info("Video processing completed successfully.")
+    logging.info("All processing completed successfully.")
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process video segments from JSON input.')
-    parser.add_argument('json_input', type=str, help='Enter JSON input')
-    parser.add_argument('output_file', type=str, help='Enter filename to save output')
-
-    args = parser.parse_args()
-
-    main(args.json_input, args.output_file)
+    main()
